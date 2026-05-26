@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="タスク管理">
+<meta name="theme-color" content="#2c2c2a">
+<title>タスク管理</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic UI", sans-serif; background: #f5f5f0; color: #2c2c2a; font-size: 15px; line-height: 1.5; }
+body { padding-bottom: 80px; min-height: 100vh; }
+
+/* ヘッダー */
+.header { background: #2c2c2a; color: white; padding: 14px 16px; position: sticky; top: 0; z-index: 100; }
+.header-title { font-size: 16px; font-weight: 600; }
+.header-sub { font-size: 12px; color: #aaa; margin-top: 2px; }
+
+/* アラート */
+.alert { margin: 10px 16px 0; padding: 10px 14px; background: #FCEBEB; border-left: 3px solid #A32D2D; border-radius: 8px; font-size: 13px; color: #5a1818; }
+.alert.warn { background: #FAEEDA; border-left-color: #854F0B; color: #5a3408; }
+.alert.info { background: #E6F1FB; border-left-color: #185FA5; color: #0c3458; }
+.alert-title { font-weight: 600; margin-bottom: 2px; }
+
+/* タブ */
+.tabs { display: flex; background: white; border-bottom: 0.5px solid #e0deda; position: sticky; top: 54px; z-index: 90; overflow-x: auto; }
+.tabs::-webkit-scrollbar { display: none; }
+.tab { flex-shrink: 0; padding: 11px 12px; font-size: 13px; border: none; background: transparent; color: #888780; border-bottom: 2px solid transparent; cursor: pointer; font-family: inherit; white-space: nowrap; }
+.tab.active { color: #2c2c2a; border-bottom-color: #2c2c2a; font-weight: 600; }
+
+/* セクション */
+.section { padding: 12px 16px 4px; }
+.section-title { font-size: 12px; color: #888780; font-weight: 500; margin-bottom: 8px; }
+
+/* 週区切りヘッダー */
+.week-header { display: flex; align-items: center; gap: 10px; padding: 14px 0 8px; }
+.week-label { font-size: 13px; font-weight: 600; color: #2c2c2a; white-space: nowrap; }
+.week-line { flex: 1; height: 0.5px; background: #d3d1c7; }
+.week-badge { font-size: 11px; padding: 2px 8px; border-radius: 99px; font-weight: 500; white-space: nowrap; }
+.week-this { background: #FAEEDA; color: #854F0B; }
+.week-next { background: #E6F1FB; color: #185FA5; }
+.week-later { background: #f1efe8; color: #888780; }
+
+/* タスクカード */
+.card { background: white; border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; border: 0.5px solid #e0deda; }
+.card.done { opacity: 0.45; }
+.card-head { display: flex; align-items: flex-start; gap: 10px; }
+.rank { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+.rank-1 { background: #FCEBEB; color: #A32D2D; }
+.rank-2 { background: #FAEEDA; color: #854F0B; }
+.rank-3 { background: #E6F1FB; color: #185FA5; }
+.rank-n { background: #f1efe8; color: #888780; }
+.card-body { flex: 1; min-width: 0; }
+.card-name { font-size: 14px; font-weight: 600; color: #2c2c2a; }
+.card-name.done-text { text-decoration: line-through; color: #888780; }
+.card-meta { font-size: 11px; color: #888780; margin-top: 3px; display: flex; flex-wrap: wrap; gap: 8px; }
+.card-actions { display: flex; gap: 5px; flex-shrink: 0; }
+.icon-btn { background: none; border: 0.5px solid #e0deda; border-radius: 8px; padding: 5px 7px; font-size: 12px; cursor: pointer; color: #5f5e5a; font-family: inherit; }
+.icon-btn.primary { background: #2c2c2a; color: white; border-color: #2c2c2a; }
+
+/* バッジ */
+.badges { display: flex; gap: 4px; margin-top: 6px; flex-wrap: wrap; }
+.badge { font-size: 10px; padding: 2px 7px; border-radius: 99px; font-weight: 500; }
+.badge-over { background: #A32D2D; color: white; }
+.badge-today { background: #FCEBEB; color: #A32D2D; }
+.badge-soon { background: #FAEEDA; color: #854F0B; }
+.badge-ok { background: #EAF3DE; color: #3B6D11; }
+.badge-soft { background: #E6F1FB; color: #185FA5; }
+.badge-repeat { background: #EEEDFE; color: #3C3489; }
+
+/* プログレス */
+.progress { margin-top: 8px; }
+.progress-bar { height: 4px; background: #f1efe8; border-radius: 99px; overflow: hidden; }
+.progress-fill { height: 100%; background: #639922; border-radius: 99px; transition: width 0.3s; }
+.progress-text { font-size: 11px; color: #888780; margin-top: 3px; }
+
+/* サブタスク */
+.subtasks { margin-top: 10px; padding-top: 10px; border-top: 0.5px solid #f1efe8; }
+.subtask { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 13px; cursor: pointer; }
+.subtask-check { width: 18px; height: 18px; border: 1.5px solid #d3d1c7; border-radius: 4px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+.subtask.sdone .subtask-check { background: #639922; border-color: #639922; color: white; }
+.subtask.sdone .subtask-name { text-decoration: line-through; color: #888780; }
+.subtask-name { flex: 1; }
+.subtask-del { background: none; border: none; color: #b4b2a9; font-size: 16px; cursor: pointer; padding: 0 4px; font-family: inherit; line-height: 1; }
+.subtask-add { display: flex; gap: 6px; margin-top: 6px; }
+.subtask-add input { flex: 1; font-size: 13px; padding: 5px 8px; border: 0.5px solid #e0deda; border-radius: 6px; background: #f8f8f6; font-family: inherit; }
+.subtask-add button { background: #2c2c2a; color: white; border: none; border-radius: 6px; padding: 5px 10px; font-size: 13px; cursor: pointer; font-family: inherit; }
+
+/* フォーム */
+.form { padding: 14px 16px; }
+.form-card { background: white; border-radius: 12px; padding: 14px; border: 0.5px solid #e0deda; }
+.field { margin-bottom: 12px; }
+.field-label { font-size: 12px; color: #5f5e5a; font-weight: 500; display: block; margin-bottom: 4px; }
+.field-input, .field-select, .field-textarea { width: 100%; font-size: 14px; padding: 8px 10px; border: 0.5px solid #d3d1c7; border-radius: 8px; background: #fafaf6; font-family: inherit; color: #2c2c2a; }
+.field-textarea { resize: vertical; min-height: 70px; }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.field-help { font-size: 11px; color: #888780; margin-top: 3px; }
+
+/* テンプレートチップ */
+.tpl-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.tpl-chip { padding: 6px 12px; background: white; border: 0.5px solid #d3d1c7; border-radius: 99px; font-size: 12px; cursor: pointer; font-family: inherit; color: #2c2c2a; display: flex; align-items: center; gap: 5px; }
+.tpl-chip:active { background: #f1efe8; }
+.tpl-empty { font-size: 13px; color: #b4b2a9; padding: 4px 0; }
+
+/* ボタン */
+.btn-primary { width: 100%; padding: 12px; font-size: 15px; font-weight: 600; background: #2c2c2a; color: white; border: none; border-radius: 10px; cursor: pointer; font-family: inherit; }
+.btn-secondary { width: 100%; padding: 10px; font-size: 13px; background: white; color: #5f5e5a; border: 0.5px solid #d3d1c7; border-radius: 10px; cursor: pointer; margin-top: 8px; font-family: inherit; }
+.btn-blue { width: 100%; padding: 12px; font-size: 15px; font-weight: 600; background: #185FA5; color: white; border: none; border-radius: 10px; cursor: pointer; font-family: inherit; }
+.btn-blue-outline { width: 100%; padding: 11px; font-size: 14px; font-weight: 600; background: white; color: #185FA5; border: 1px solid #185FA5; border-radius: 10px; cursor: pointer; font-family: inherit; }
+
+/* 設定 */
+.setting-group { background: white; border-radius: 12px; overflow: hidden; border: 0.5px solid #e0deda; }
+.setting-item { padding: 13px 14px; border-bottom: 0.5px solid #e0deda; display: flex; justify-content: space-between; align-items: center; font-size: 14px; cursor: pointer; }
+.setting-item:last-child { border-bottom: none; }
+.setting-item.danger { color: #A32D2D; }
+
+/* テンプレート管理 */
+.tpl-manage-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 0.5px solid #e0deda; font-size: 14px; }
+.tpl-manage-item:last-child { border-bottom: none; }
+.tpl-manage-name { flex: 1; }
+.tpl-manage-meta { font-size: 11px; color: #888780; margin-top: 2px; }
+
+/* モーダル */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: flex-end; justify-content: center; z-index: 200; }
+.modal-overlay.show { display: flex; }
+.modal { background: white; border-radius: 16px 16px 0 0; padding: 20px 16px; width: 100%; max-height: 85vh; overflow-y: auto; }
+.modal-title { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+.modal-text { font-size: 13px; color: #5f5e5a; margin-bottom: 14px; }
+.modal-actions { display: flex; gap: 8px; margin-top: 12px; }
+.modal-actions button { flex: 1; padding: 11px; border: none; border-radius: 10px; font-size: 14px; cursor: pointer; font-family: inherit; font-weight: 500; }
+
+/* 空表示 */
+.empty { text-align: center; padding: 36px 20px; color: #b4b2a9; font-size: 14px; }
+
+/* 編集モードバナー */
+.edit-banner { font-size: 13px; color: #888780; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 0.5px solid #e0deda; display: none; }
+.edit-banner.show { display: flex; justify-content: space-between; align-items: center; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-title">タスク管理</div>
+  <div class="header-sub" id="header-date"></div>
+  <div class="header-sub" id="header-sync"></div>
+</div>
+
+<div id="alerts"></div>
+
+<div class="tabs">
+  <button class="tab active" data-tab="today">今日</button>
+  <button class="tab" data-tab="upcoming">予定</button>
+  <button class="tab" data-tab="all">すべて</button>
+  <button class="tab" data-tab="add">＋追加</button>
+  <button class="tab" data-tab="settings">設定</button>
+</div>
+
+<!-- 今日タブ -->
+<div id="page-today">
+  <div class="section">
+    <div class="section-title">今日着手すべきタスク</div>
+    <div id="today-list"></div>
+  </div>
+  <div class="section">
+    <div class="section-title">目安期限のタスク</div>
+    <div id="today-soft-list"></div>
+  </div>
+</div>
+
+<!-- 予定タブ -->
+<div id="page-upcoming" style="display:none;">
+  <div class="section">
+    <div class="section-title">今後の予定（1週間ごとに表示）</div>
+    <div id="upcoming-list"></div>
+  </div>
+</div>
+
+<!-- すべてタブ -->
+<div id="page-all" style="display:none;">
+  <div class="section">
+    <div id="all-list"></div>
+  </div>
+</div>
+
+<!-- 追加タブ -->
+<div id="page-add" style="display:none;">
+  <div class="form">
+    <div class="form-card">
+
+      <!-- 編集モードバナー -->
+      <div class="edit-banner" id="edit-banner">
+        <span>✏️ <strong>編集モード</strong></span>
+        <button id="btn-cancel-edit" style="background:none;border:none;color:#888780;font-size:13px;cursor:pointer;font-family:inherit;">キャンセル</button>
+      </div>
+
+      <!-- テンプレート呼び出し -->
+      <div class="field" id="tpl-section">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <label class="field-label" style="margin-bottom:0;">テンプレートから入力</label>
+        </div>
+        <div class="tpl-row" id="tpl-chips"></div>
+      </div>
+
+      <div class="field">
+        <label class="field-label">タスク名</label>
+        <input type="text" class="field-input" id="f-name" placeholder="タスク名を入力">
+      </div>
+
+      <div class="field">
+        <label class="field-label">締切タイプ</label>
+        <select class="field-select" id="f-soft">
+          <option value="0">締切あり（厳守）</option>
+          <option value="1">目安期限（できればこの頃まで）</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label class="field-label">締切日</label>
+        <input type="date" class="field-input" id="f-deadline">
+      </div>
+
+      <div class="field-row" style="margin-bottom:12px;">
+        <div class="field">
+          <label class="field-label">所要時間</label>
+          <select class="field-select" id="f-duration">
+            <option value="0.25">15分</option>
+            <option value="0.5">30分</option>
+            <option value="1" selected>1時間</option>
+            <option value="2">2時間</option>
+            <option value="4">半日（4時間）</option>
+            <option value="8">1日</option>
+            <option value="16">2日</option>
+            <option value="40">1週間</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="field-label">重要度</label>
+          <select class="field-select" id="f-importance">
+            <option value="3">高</option>
+            <option value="2" selected>中</option>
+            <option value="1">低</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field-label">繰り返し</label>
+        <select class="field-select" id="f-repeat">
+          <option value="none">なし</option>
+          <option value="weekly">毎週</option>
+          <option value="biweekly">隔週</option>
+          <option value="monthly">毎月（同日）</option>
+          <option value="monthend">毎月末</option>
+        </select>
+        <div class="field-help">完了時に次回分を自動生成します</div>
+      </div>
+
+      <div class="field">
+        <label class="field-label">サブタスク（任意・改行区切り）</label>
+        <textarea class="field-textarea" id="f-subtasks" placeholder="例：&#10;データ集計&#10;チェック&#10;送付"></textarea>
+      </div>
+
+      <button class="btn-primary" id="btn-save">タスクを追加</button>
+
+      <!-- テンプレートとして保存 -->
+      <button class="btn-secondary" id="btn-save-tpl" style="margin-top:8px;">📌 テンプレートとして保存</button>
+
+      <button class="btn-secondary" id="btn-clear">入力をリセット</button>
+    </div>
+  </div>
+</div>
+
+<!-- 設定タブ -->
+<div id="page-settings" style="display:none;">
+
+  <!-- OneDrive同期 -->
+  <div class="section">
+    <div class="section-title">OneDrive 同期</div>
+    <div style="background:white; padding:12px 14px; border-radius:12px; font-size:13px; color:#5f5e5a; border:0.5px solid #e0deda;">
+      <p>📁 保存先：OneDrive ＞ <strong>タスク管理</strong> フォルダ</p>
+      <p style="margin-top:4px;">📄 ファイル名：<strong>tasks.json</strong>（常に上書き）</p>
+      <div id="sync-status" style="margin-top:10px; padding-top:10px; border-top:0.5px solid #e0deda; font-size:12px;"></div>
+    </div>
+    <button class="btn-blue" id="btn-sync-out" style="margin-top:10px;">📤 OneDriveに保存（書き出し）</button>
+    <button class="btn-blue-outline" id="btn-sync-in" style="margin-top:8px;">📥 OneDriveから読み込み</button>
+    <div style="margin-top:10px; padding:10px 12px; background:#E6F1FB; border-radius:8px; font-size:12px; color:#0c3458; line-height:1.6;">
+      <strong>使い方：</strong><br>
+      朝：📥 で他端末の変更を取り込む<br>
+      夜：📤 でその日の変更を保存<br>
+      ※ファイルはOneDriveの「タスク管理」フォルダに保存してください
+    </div>
+  </div>
+
+  <!-- テンプレート管理 -->
+  <div class="section" style="margin-top:8px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <div class="section-title" style="margin-bottom:0;">テンプレート管理</div>
+      <button onclick="showAddTplModal()" style="background:#2c2c2a;color:white;border:none;border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:inherit;">＋ 追加</button>
+    </div>
+    <div class="setting-group" id="tpl-manage-list"></div>
+  </div>
+
+  <!-- その他 -->
+  <div class="section" style="margin-top:8px;">
+    <div class="section-title">その他</div>
+    <div class="setting-group">
+      <div class="setting-item danger" id="btn-reset-all">
+        <span>すべてのデータを削除</span><span>→</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- スコア説明 -->
+  <div class="section" style="margin-top:8px;">
+    <div class="section-title">優先順位の計算方法</div>
+    <div style="background:white; padding:12px 14px; border-radius:12px; font-size:13px; color:#5f5e5a; line-height:1.7; border:0.5px solid #e0deda;">
+      <p>スコア＝ 締切緊急度 × 2 ＋ 重要度 × 2 ＋ 所要時間係数</p>
+      <p style="margin-top:4px; font-size:12px;">締切が近いほど・重要度が高いほど・所要時間が長いほど早めに着手と判定されます。</p>
+    </div>
+  </div>
+
+  <div class="section"><div style="font-size:11px;color:#b4b2a9;text-align:center;">v2.0　オフライン動作</div></div>
+</div>
+
+<!-- モーダル（共通） -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-title" id="modal-title"></div>
+    <div class="modal-text" id="modal-text"></div>
+    <div id="modal-body"></div>
+    <div class="modal-actions">
+      <button id="modal-cancel" style="background:#f1efe8;color:#5f5e5a;">キャンセル</button>
+      <button id="modal-ok" style="background:#2c2c2a;color:white;">実行</button>
+    </div>
+  </div>
+</div>
+
+<!-- テンプレート追加モーダル -->
+<div class="modal-overlay" id="tpl-modal">
+  <div class="modal">
+    <div class="modal-title" id="tpl-modal-title">テンプレートを追加</div>
+    <div style="margin-top:10px;">
+      <div class="field">
+        <label class="field-label">テンプレート名</label>
+        <input type="text" class="field-input" id="tpl-name" placeholder="例：請求事務">
+      </div>
+      <div class="field-row" style="margin-bottom:10px;">
+        <div class="field">
+          <label class="field-label">所要時間</label>
+          <select class="field-select" id="tpl-duration">
+            <option value="0.25">15分</option>
+            <option value="0.5">30分</option>
+            <option value="1" selected>1時間</option>
+            <option value="2">2時間</option>
+            <option value="4">半日</option>
+            <option value="8">1日</option>
+            <option value="16">2日</option>
+            <option value="40">1週間</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="field-label">重要度</label>
+          <select class="field-select" id="tpl-importance">
+            <option value="3">高</option>
+            <option value="2" selected>中</option>
+            <option value="1">低</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label class="field-label">繰り返し</label>
+        <select class="field-select" id="tpl-repeat">
+          <option value="none">なし</option>
+          <option value="weekly">毎週</option>
+          <option value="biweekly">隔週</option>
+          <option value="monthly">毎月（同日）</option>
+          <option value="monthend">毎月末</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="field-label">サブタスク（改行区切り）</label>
+        <textarea class="field-textarea" id="tpl-subtasks" placeholder="例：&#10;データ集計&#10;チェック&#10;送付" style="min-height:60px;"></textarea>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button onclick="closeTplModal()" style="background:#f1efe8;color:#5f5e5a;flex:1;padding:11px;border:none;border-radius:10px;font-size:14px;cursor:pointer;font-family:inherit;font-weight:500;">キャンセル</button>
+      <button onclick="saveTplFromModal()" style="background:#2c2c2a;color:white;flex:1;padding:11px;border:none;border-radius:10px;font-size:14px;cursor:pointer;font-family:inherit;font-weight:500;">保存</button>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="import-file" accept="application/json" style="display:none;">
+
+<script>
+// ===========================
+// 状態管理
+// ===========================
+const STORAGE_KEY = 'task_manager_v2';
+
+let state = loadState();
+let editingId = null;
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return { tasks: [], templates: [], nextId: 1 };
+}
+
+function saveState() {
+  if (!state.templates) state.templates = [];
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
+}
+
+// ===========================
+// 日付ユーティリティ
+// ===========================
+function todayDate() {
+  const d = new Date(); d.setHours(0,0,0,0); return d;
+}
+function daysUntil(dateStr) {
+  if (!dateStr) return 999;
+  const d = new Date(dateStr); d.setHours(0,0,0,0);
+  return Math.round((d - todayDate()) / 86400000);
+}
+function fmtDateInput(d) { return d.toISOString().split('T')[0]; }
+function fmtDateDisplay(dateStr) {
+  const d = new Date(dateStr);
+  return `${d.getMonth()+1}/${d.getDate()}（${['日','月','火','水','木','金','土'][d.getDay()]}）`;
+}
+function todayHeader() {
+  const d = new Date();
+  return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日　${['日','月','火','水','木','金','土'][d.getDay()]}曜日`;
+}
+function addDays(dateStr, n) {
+  const d = new Date(dateStr); d.setDate(d.getDate()+n); return fmtDateInput(d);
+}
+function addMonths(dateStr, n) {
+  const d = new Date(dateStr); d.setMonth(d.getMonth()+n); return fmtDateInput(d);
+}
+function monthEnd(dateStr) {
+  const d = new Date(dateStr);
+  return fmtDateInput(new Date(d.getFullYear(), d.getMonth()+1, 0));
+}
+function formatRelTime(isoStr) {
+  if (!isoStr) return '未実施';
+  const t = new Date(isoStr), now = new Date();
+  const diffMin = Math.round((now - t) / 60000);
+  if (diffMin < 1) return 'たった今';
+  if (diffMin < 60) return `${diffMin}分前`;
+  const diffHour = Math.round(diffMin / 60);
+  if (diffHour < 24) return `${diffHour}時間前`;
+  return `${Math.round(diffHour/24)}日前`;
+}
+
+// ===========================
+// スコア・判定
+// ===========================
+function calcScore(task) {
+  const days = daysUntil(task.deadline);
+  let ds = days < 0 ? 12 : days === 0 ? 10 : days <= 1 ? 8 : days <= 3 ? 6 : days <= 7 ? 4 : days <= 14 ? 2 : 1;
+  if (task.soft) ds *= 0.5;
+  return ds * 2 + (task.importance||2) * 2 + Math.log2((task.duration||1)+1);
+}
+function startDate(task) {
+  if (!task.deadline) return null;
+  const d = new Date(task.deadline);
+  d.setDate(d.getDate() - Math.max(1, Math.ceil((task.duration||1)/4)));
+  d.setHours(0,0,0,0); return d;
+}
+function shouldStartToday(task) {
+  const s = startDate(task); return !s || s <= todayDate();
+}
+function urgencyLabel(task) {
+  const d = daysUntil(task.deadline);
+  if (d < 0) return '期限超過';
+  if (d === 0) return '今日が締切';
+  if (d <= 1) return '緊急：高';
+  if (d <= 3) return '緊急：中';
+  return '緊急：低';
+}
+function deadlineBadgeClass(task) {
+  if (task.soft) return 'badge-soft';
+  const d = daysUntil(task.deadline);
+  if (d < 0) return 'badge-over';
+  if (d <= 1) return 'badge-today';
+  if (d <= 3) return 'badge-soon';
+  return 'badge-ok';
+}
+function rankClass(i) {
+  return i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : 'rank-n';
+}
+function durationLabel(v) {
+  return v < 1 ? `${v*60}分` : v >= 8 ? `${v/8}日` : `${v}時間`;
+}
+function repeatLabel(r) {
+  return {weekly:'毎週',biweekly:'隔週',monthly:'毎月',monthend:'毎月末'}[r] || '';
+}
+
+// ===========================
+// カードHTML生成
+// ===========================
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+function renderCard(task, rank) {
+  const subs = task.subtasks || [];
+  const doneCount = subs.filter(s => s.done).length;
+  const total = subs.length;
+  const pct = total > 0 ? Math.round(doneCount/total*100) : 0;
+  const days = daysUntil(task.deadline);
+  const dlLabel = task.deadline
+    ? (days < 0 ? `${Math.abs(days)}日超過` : days === 0 ? '今日締切' : `${fmtDateDisplay(task.deadline)}（${days}日後）`)
+    : '締切なし';
+  const rl = repeatLabel(task.repeat);
+
+  let html = `<div class="card${task.done?' done':''}" data-id="${task.id}">
+    <div class="card-head">
+      ${rank!=null?`<div class="rank ${rankClass(rank)}">${rank+1}</div>`:''}
+      <div class="card-body">
+        <div class="card-name${task.done?' done-text':''}">${escapeHtml(task.name)}</div>
+        <div class="card-meta">
+          <span>📅 ${dlLabel}</span>
+          <span>⏱ ${durationLabel(task.duration||1)}</span>
+        </div>
+        <div class="badges">
+          <span class="badge ${deadlineBadgeClass(task)}">${task.soft?'目安':urgencyLabel(task)}</span>
+          <span class="badge ${task.importance===3?'badge-today':task.importance===2?'badge-soon':'badge-ok'}">重要：${task.importance===3?'高':task.importance===2?'中':'低'}</span>
+          ${rl?`<span class="badge badge-repeat">🔁 ${rl}</span>`:''}
+        </div>
+        ${total>0?`<div class="progress"><div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div><div class="progress-text">${doneCount}/${total}完了（${pct}%）</div></div>`:''}
+      </div>
+      <div class="card-actions">
+        <button class="icon-btn ${task.done?'':'primary'}" onclick="toggleDone(${task.id})">${task.done?'↻':'✓'}</button>
+        <button class="icon-btn" onclick="editTask(${task.id})">✏️</button>
+        <button class="icon-btn" onclick="confirmDelete(${task.id})">🗑</button>
+      </div>
+    </div>`;
+
+  // サブタスク
+  if (total > 0 || !task.done) {
+    html += `<div class="subtasks">`;
+    subs.forEach((s, i) => {
+      html += `<div class="subtask${s.done?' sdone':''}" onclick="toggleSubtask(${task.id},${i})">
+        <div class="subtask-check">${s.done?'✓':''}</div>
+        <div class="subtask-name">${escapeHtml(s.name)}</div>
+        <button class="subtask-del" onclick="event.stopPropagation();deleteSubtask(${task.id},${i})">×</button>
+      </div>`;
+    });
+    if (!task.done) {
+      html += `<div class="subtask-add">
+        <input type="text" id="si-${task.id}" placeholder="サブタスクを追加">
+        <button onclick="addSubtask(${task.id})">追加</button>
+      </div>`;
+    }
+    html += `</div>`;
+  }
+  html += `</div>`;
+  return html;
+}
+
+// ===========================
+// 週ラベル生成
+// ===========================
+function weekLabel(weekIndex) {
+  const t = todayDate();
+  if (weekIndex === 0) {
+    const end = new Date(t); end.setDate(end.getDate()+6);
+    return {
+      label: `今週（〜${end.getMonth()+1}/${end.getDate()}）`,
+      badgeClass: 'week-this',
+      badgeText: '今週'
+    };
+  } else if (weekIndex === 1) {
+    const start = new Date(t); start.setDate(start.getDate()+7);
+    const end = new Date(t); end.setDate(end.getDate()+13);
+    return {
+      label: `来週（${start.getMonth()+1}/${start.getDate()} 〜 ${end.getMonth()+1}/${end.getDate()}）`,
+      badgeClass: 'week-next',
+      badgeText: '来週'
+    };
+  } else {
+    const start = new Date(t); start.setDate(start.getDate()+weekIndex*7);
+    const end = new Date(t); end.setDate(end.getDate()+weekIndex*7+6);
+    return {
+      label: `${weekIndex+1}週間後（${start.getMonth()+1}/${start.getDate()} 〜 ${end.getMonth()+1}/${end.getDate()}）`,
+      badgeClass: 'week-later',
+      badgeText: `${weekIndex+1}週後`
+    };
+  }
+}
+
+// ===========================
+// レンダリング
+// ===========================
+function renderSyncStatus() {
+  const h = document.getElementById('header-sync');
+  const s = document.getElementById('sync-status');
+  const parts = [];
+  if (state.lastSyncIn) parts.push(`📥 ${formatRelTime(state.lastSyncIn)}`);
+  if (state.lastSyncOut) parts.push(`📤 ${formatRelTime(state.lastSyncOut)}`);
+  if (h) h.textContent = parts.join('　');
+  if (s) s.innerHTML = `
+    <div>📥 最後の読み込み：<strong>${formatRelTime(state.lastSyncIn)}</strong></div>
+    <div style="margin-top:3px;">📤 最後の書き出し：<strong>${formatRelTime(state.lastSyncOut)}</strong></div>`;
+}
+
+function renderToday() {
+  document.getElementById('header-date').textContent = todayHeader();
+  const alerts = [];
+
+  // 同期リマインダー
+  if (state.lastSyncIn) {
+    const h = (new Date() - new Date(state.lastSyncIn)) / 3600000;
+    if (h > 12) alerts.push(`<div class="alert info"><div class="alert-title">📥 OneDriveからの読み込みをお忘れなく</div>最後の読み込みから${Math.round(h)}時間経過しています</div>`);
+  } else {
+    alerts.push(`<div class="alert info"><div class="alert-title">💡 OneDrive同期について</div>別端末と同期する場合は設定タブから書き出し・読み込みを行ってください</div>`);
+  }
+
+  const overdue = state.tasks.filter(t => !t.done && !t.soft && daysUntil(t.deadline) < 0);
+  const dueToday = state.tasks.filter(t => !t.done && !t.soft && daysUntil(t.deadline) === 0);
+  const startToday = state.tasks.filter(t => !t.done && !t.soft && shouldStartToday(t) && daysUntil(t.deadline) > 0);
+
+  if (overdue.length) alerts.push(`<div class="alert"><div class="alert-title">⚠️ 期限超過：${overdue.length}件</div>${overdue.map(t=>escapeHtml(t.name)).join('、')}</div>`);
+  if (dueToday.length) alerts.push(`<div class="alert warn"><div class="alert-title">📅 今日が締切：${dueToday.length}件</div>${dueToday.map(t=>escapeHtml(t.name)).join('、')}</div>`);
+  if (startToday.length) alerts.push(`<div class="alert info"><div class="alert-title">▶️ 今日から着手すべき：${startToday.length}件</div>所要時間から逆算</div>`);
+
+  document.getElementById('alerts').innerHTML = alerts.join('');
+
+  const hard = state.tasks.filter(t => !t.done && !t.soft && shouldStartToday(t)).sort((a,b)=>calcScore(b)-calcScore(a));
+  const el = document.getElementById('today-list');
+  el.innerHTML = hard.length ? hard.map((t,i)=>renderCard(t,i)).join('') : '<div class="empty">今日着手すべきタスクはありません</div>';
+
+  const soft = state.tasks.filter(t => !t.done && t.soft).sort((a,b)=>calcScore(b)-calcScore(a));
+  const el2 = document.getElementById('today-soft-list');
+  el2.innerHTML = soft.length ? soft.map((t,i)=>renderCard(t,i)).join('') : '<div class="empty" style="padding:16px;">目安期限のタスクはありません</div>';
+}
+
+function renderUpcoming() {
+  // 着手日が未来のタスクを1週間ごとにグループ化
+  const upcoming = state.tasks.filter(t => !t.done && !t.soft && !shouldStartToday(t));
+
+  // 週インデックスを計算
+  const grouped = {};
+  upcoming.forEach(t => {
+    const s = startDate(t) || new Date(8640000000000000);
+    const diffDays = Math.max(0, Math.round((s - todayDate()) / 86400000));
+    const weekIdx = Math.floor(diffDays / 7);
+    if (!grouped[weekIdx]) grouped[weekIdx] = [];
+    grouped[weekIdx].push(t);
+  });
+
+  const el = document.getElementById('upcoming-list');
+  if (!Object.keys(grouped).length) {
+    el.innerHTML = '<div class="empty">予定中のタスクはありません</div>';
+    return;
+  }
+
+  let html = '';
+  Object.keys(grouped).sort((a,b)=>a-b).forEach(wi => {
+    const wl = weekLabel(parseInt(wi));
+    html += `<div class="week-header">
+      <div class="week-label">${wl.label}</div>
+      <span class="week-badge ${wl.badgeClass}">${wl.badgeText}</span>
+      <div class="week-line"></div>
+    </div>`;
+    grouped[wi].sort((a,b)=>calcScore(b)-calcScore(a)).forEach(t => {
+      html += renderCard(t, null);
+    });
+  });
+  el.innerHTML = html;
+}
+
+function renderAll() {
+  const sorted = [...state.tasks].sort((a,b) => {
+    if (a.done !== b.done) return a.done ? 1 : -1;
+    return calcScore(b) - calcScore(a);
+  });
+  const el = document.getElementById('all-list');
+  el.innerHTML = sorted.length ? sorted.map(t=>renderCard(t,null)).join('') : '<div class="empty">タスクがありません</div>';
+}
+
+function renderTplChips() {
+  const templates = state.templates || [];
+  const el = document.getElementById('tpl-chips');
+  const section = document.getElementById('tpl-section');
+  if (!el) return;
+  if (!templates.length) {
+    el.innerHTML = '<div class="tpl-empty">テンプレートがまだありません（設定タブから追加できます）</div>';
+    return;
+  }
+  el.innerHTML = templates.map(t =>
+    `<button class="tpl-chip" onclick="applyTemplate('${escapeHtml(t.name)}')">${escapeHtml(t.name)}</button>`
+  ).join('');
+}
+
+function renderTplManage() {
+  const templates = state.templates || [];
+  const el = document.getElementById('tpl-manage-list');
+  if (!el) return;
+  if (!templates.length) {
+    el.innerHTML = '<div style="padding:14px;font-size:13px;color:#b4b2a9;">テンプレートがありません</div>';
+    return;
+  }
+  el.innerHTML = `<div class="setting-group">` + templates.map((t, i) => {
+    const rl = repeatLabel(t.repeat);
+    return `<div class="tpl-manage-item">
+      <div style="flex:1;">
+        <div class="tpl-manage-name">${escapeHtml(t.name)}</div>
+        <div class="tpl-manage-meta">所要${durationLabel(t.duration||1)}　重要：${t.importance===3?'高':t.importance===2?'中':'低'}${rl?'　🔁'+rl:''}</div>
+      </div>
+      <div style="display:flex;gap:5px;">
+        <button onclick="editTpl(${i})" style="background:none;border:0.5px solid #e0deda;border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer;color:#2c2c2a;font-family:inherit;">編集</button>
+        <button onclick="deleteTpl(${i})" style="background:none;border:0.5px solid #e0deda;border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer;color:#A32D2D;font-family:inherit;">削除</button>
+      </div>
+    </div>`;
+  }).join('') + `</div>`;
+}
+
+function render() {
+  renderToday();
+  renderUpcoming();
+  renderAll();
+  renderTplChips();
+  renderTplManage();
+  renderSyncStatus();
+  saveState();
+}
+
+// ===========================
+// タスク操作
+// ===========================
+function toggleDone(id) {
+  const t = state.tasks.find(t => t.id === id);
+  if (!t) return;
+  t.done = !t.done;
+  if (t.done && t.repeat && t.repeat !== 'none') {
+    let nd;
+    if (t.repeat === 'weekly')   nd = addDays(t.deadline, 7);
+    if (t.repeat === 'biweekly') nd = addDays(t.deadline, 14);
+    if (t.repeat === 'monthly')  nd = addMonths(t.deadline, 1);
+    if (t.repeat === 'monthend') nd = monthEnd(addMonths(t.deadline, 1));
+    state.tasks.push({
+      id: state.nextId++, name: t.name, deadline: nd, soft: t.soft,
+      duration: t.duration, importance: t.importance, repeat: t.repeat,
+      subtasks: (t.subtasks||[]).map(s=>({name:s.name,done:false})), done: false,
+      created: todayDate().toISOString()
+    });
+  }
+  render();
+}
+
+function toggleSubtask(taskId, idx) {
+  const t = state.tasks.find(t => t.id === taskId);
+  if (!t || !t.subtasks[idx]) return;
+  t.subtasks[idx].done = !t.subtasks[idx].done;
+  if (t.subtasks.length && t.subtasks.every(s=>s.done) && !t.done) toggleDone(taskId);
+  else render();
+}
+
+function addSubtask(taskId) {
+  const input = document.getElementById(`si-${taskId}`);
+  const name = input?.value.trim();
+  if (!name) return;
+  const t = state.tasks.find(t => t.id === taskId);
+  if (!t) return;
+  if (!t.subtasks) t.subtasks = [];
+  t.subtasks.push({name, done:false});
+  input.value = '';
+  render();
+}
+
+function deleteSubtask(taskId, idx) {
+  const t = state.tasks.find(t => t.id === taskId);
+  if (t?.subtasks) { t.subtasks.splice(idx, 1); render(); }
+}
+
+function editTask(id) {
+  const t = state.tasks.find(t => t.id === id);
+  if (!t) return;
+  editingId = id;
+  document.getElementById('f-name').value = t.name;
+  document.getElementById('f-deadline').value = t.deadline;
+  document.getElementById('f-soft').value = t.soft ? '1' : '0';
+  document.getElementById('f-duration').value = t.duration;
+  document.getElementById('f-importance').value = t.importance;
+  document.getElementById('f-repeat').value = t.repeat || 'none';
+  document.getElementById('f-subtasks').value = (t.subtasks||[]).map(s=>s.name).join('\n');
+  const banner = document.getElementById('edit-banner');
+  banner.classList.add('show');
+  document.getElementById('tpl-section').style.display = 'none';
+  document.getElementById('btn-save').textContent = '変更を保存';
+  document.getElementById('btn-save-tpl').style.display = 'none';
+  switchTab('add');
+}
+
+function exitEditMode() {
+  editingId = null;
+  const banner = document.getElementById('edit-banner');
+  banner.classList.remove('show');
+  document.getElementById('tpl-section').style.display = 'block';
+  document.getElementById('btn-save').textContent = 'タスクを追加';
+  document.getElementById('btn-save-tpl').style.display = 'block';
+}
+
+function confirmDelete(id) {
+  const t = state.tasks.find(t => t.id === id);
+  showModal('タスクを削除', `「${t.name}」を削除しますか？`, () => {
+    state.tasks = state.tasks.filter(t => t.id !== id);
+    render();
+  }, '#A32D2D');
+}
+
+// ===========================
+// フォーム操作
+// ===========================
+function getFormValues() {
+  const name = document.getElementById('f-name').value.trim();
+  const deadline = document.getElementById('f-deadline').value;
+  const soft = document.getElementById('f-soft').value === '1';
+  const duration = parseFloat(document.getElementById('f-duration').value);
+  const importance = parseInt(document.getElementById('f-importance').value);
+  const repeat = document.getElementById('f-repeat').value;
+  const subtasksRaw = document.getElementById('f-subtasks').value.trim();
+  const subtasks = subtasksRaw ? subtasksRaw.split('\n').filter(s=>s.trim()).map(s=>({name:s.trim(),done:false})) : [];
+  return { name, deadline, soft, duration, importance, repeat, subtasks };
+}
+
+function saveTask() {
+  const v = getFormValues();
+  if (!v.name) { alert('タスク名を入力してください'); return; }
+  if (!v.deadline) { alert('締切日を入力してください'); return; }
+
+  if (editingId != null) {
+    const t = state.tasks.find(t => t.id === editingId);
+    if (t) {
+      const oldMap = {};
+      (t.subtasks||[]).forEach(s => { oldMap[s.name] = s.done; });
+      t.name = v.name; t.deadline = v.deadline; t.soft = v.soft;
+      t.duration = v.duration; t.importance = v.importance; t.repeat = v.repeat;
+      t.subtasks = v.subtasks.map(s => ({name:s.name, done: oldMap[s.name]||false}));
+    }
+    exitEditMode();
+  } else {
+    state.tasks.push({ id: state.nextId++, ...v, done: false, created: todayDate().toISOString() });
+  }
+  clearForm();
+  render();
+  switchTab('today');
+}
+
+function saveTaskAsTemplate() {
+  const v = getFormValues();
+  if (!v.name) { alert('テンプレート名となるタスク名を入力してください'); return; }
+  if (!state.templates) state.templates = [];
+  if (state.templates.find(t => t.name === v.name)) {
+    if (!confirm(`「${v.name}」はすでにテンプレートに存在します。上書きしますか？`)) return;
+    state.templates = state.templates.filter(t => t.name !== v.name);
+  }
+  state.templates.push({
+    name: v.name, duration: v.duration,
+    importance: v.importance, repeat: v.repeat,
+    subtasks: v.subtasks.map(s => s.name)
+  });
+  saveState();
+  renderTplChips();
+  renderTplManage();
+  alert(`「${v.name}」をテンプレートとして保存しました`);
+}
+
+function applyTemplate(name) {
+  const t = (state.templates||[]).find(t => t.name === name);
+  if (!t) return;
+  document.getElementById('f-name').value = t.name;
+  document.getElementById('f-duration').value = t.duration || 1;
+  document.getElementById('f-importance').value = t.importance || 2;
+  document.getElementById('f-repeat').value = t.repeat || 'none';
+  document.getElementById('f-subtasks').value = (t.subtasks||[]).join('\n');
+}
+
+function clearForm() {
+  document.getElementById('f-name').value = '';
+  document.getElementById('f-deadline').value = fmtDateInput(todayDate());
+  document.getElementById('f-soft').value = '0';
+  document.getElementById('f-duration').value = '1';
+  document.getElementById('f-importance').value = '2';
+  document.getElementById('f-repeat').value = 'none';
+  document.getElementById('f-subtasks').value = '';
+  exitEditMode();
+}
+
+// ===========================
+// テンプレート管理
+// ===========================
+let editingTplIdx = null;  // 編集中テンプレートのインデックス
+
+function showAddTplModal() {
+  editingTplIdx = null;
+  document.getElementById('tpl-modal-title').textContent = 'テンプレートを追加';
+  document.getElementById('tpl-name').value = '';
+  document.getElementById('tpl-duration').value = '1';
+  document.getElementById('tpl-importance').value = '2';
+  document.getElementById('tpl-repeat').value = 'none';
+  document.getElementById('tpl-subtasks').value = '';
+  document.getElementById('tpl-modal').classList.add('show');
+}
+
+function editTpl(idx) {
+  editingTplIdx = idx;
+  const t = state.templates[idx];
+  document.getElementById('tpl-modal-title').textContent = 'テンプレートを編集';
+  document.getElementById('tpl-name').value = t.name;
+  document.getElementById('tpl-duration').value = t.duration || 1;
+  document.getElementById('tpl-importance').value = t.importance || 2;
+  document.getElementById('tpl-repeat').value = t.repeat || 'none';
+  document.getElementById('tpl-subtasks').value = (t.subtasks || []).join('\n');
+  document.getElementById('tpl-modal').classList.add('show');
+}
+
+function closeTplModal() {
+  editingTplIdx = null;
+  document.getElementById('tpl-modal').classList.remove('show');
+}
+
+function saveTplFromModal() {
+  const name = document.getElementById('tpl-name').value.trim();
+  if (!name) { alert('テンプレート名を入力してください'); return; }
+  if (!state.templates) state.templates = [];
+  const duration = parseFloat(document.getElementById('tpl-duration').value);
+  const importance = parseInt(document.getElementById('tpl-importance').value);
+  const repeat = document.getElementById('tpl-repeat').value;
+  const subsRaw = document.getElementById('tpl-subtasks').value.trim();
+  const subtasks = subsRaw ? subsRaw.split('\n').filter(s=>s.trim()) : [];
+  const newTpl = { name, duration, importance, repeat, subtasks };
+
+  if (editingTplIdx != null) {
+    // 編集モード：該当インデックスを上書き
+    state.templates[editingTplIdx] = newTpl;
+  } else {
+    // 追加モード：同名チェック
+    const existing = state.templates.findIndex(t => t.name === name);
+    if (existing >= 0) {
+      if (!confirm(`「${name}」はすでに存在します。上書きしますか？`)) return;
+      state.templates[existing] = newTpl;
+    } else {
+      state.templates.push(newTpl);
+    }
+  }
+
+  editingTplIdx = null;
+  closeTplModal();
+  saveState();
+  renderTplChips();
+  renderTplManage();
+}
+
+function deleteTpl(idx) {
+  if (!confirm(`「${state.templates[idx].name}」を削除しますか？`)) return;
+  state.templates.splice(idx, 1);
+  saveState();
+  renderTplChips();
+  renderTplManage();
+}
+
+// ===========================
+// OneDrive同期
+// ===========================
+function exportData() {
+  state.lastSyncOut = new Date().toISOString();
+  saveState();
+  const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'tasks.json'; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  renderSyncStatus();
+  alert('tasks.json を書き出しました。\nOneDriveアプリで「タスク管理」フォルダに保存してください。');
+}
+
+function importData() { document.getElementById('import-file').click(); }
+
+document.getElementById('import-file').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (!data.tasks || !Array.isArray(data.tasks)) throw new Error('無効なデータ形式');
+      showModal('データを読み込む', `${data.tasks.length}件のタスクを読み込みます。現在のデータは置き換えられます。`, () => {
+        state = data;
+        state.lastSyncIn = new Date().toISOString();
+        if (!state.templates) state.templates = [];
+        if (!state.nextId) state.nextId = Math.max(0, ...state.tasks.map(t=>t.id))+1;
+        render();
+      }, '#185FA5');
+    } catch(err) { alert('読み込みに失敗しました：'+err.message); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+});
+
+function resetAll() {
+  showModal('すべてのデータを削除', 'すべてのタスクとテンプレートが削除されます。この操作は取り消せません。', () => {
+    state = { tasks: [], templates: [], nextId: 1 };
+    render();
+  }, '#A32D2D');
+}
+
+// ===========================
+// モーダル
+// ===========================
+function showModal(title, text, onOk, okColor) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-text').textContent = text;
+  document.getElementById('modal-body').innerHTML = '';
+  document.getElementById('modal-ok').style.background = okColor || '#2c2c2a';
+  document.getElementById('modal').classList.add('show');
+  document.getElementById('modal-ok').onclick = () => {
+    onOk();
+    document.getElementById('modal').classList.remove('show');
+  };
+  document.getElementById('modal-cancel').onclick = () => {
+    document.getElementById('modal').classList.remove('show');
+  };
+}
+
+// ===========================
+// タブ切替
+// ===========================
+function switchTab(name) {
+  ['today','upcoming','all','add','settings'].forEach(t => {
+    document.getElementById('page-'+t).style.display = 'none';
+  });
+  document.getElementById('page-'+name).style.display = 'block';
+  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b.dataset.tab===name));
+  window.scrollTo(0,0);
+}
+
+document.querySelectorAll('.tab').forEach(b => {
+  b.addEventListener('click', () => {
+    if (b.dataset.tab !== 'add' && editingId != null) clearForm();
+    switchTab(b.dataset.tab);
+  });
+});
+
+// ===========================
+// イベント登録
+// ===========================
+document.getElementById('btn-save').addEventListener('click', saveTask);
+document.getElementById('btn-save-tpl').addEventListener('click', saveTaskAsTemplate);
+document.getElementById('btn-clear').addEventListener('click', clearForm);
+document.getElementById('btn-cancel-edit').addEventListener('click', () => { clearForm(); switchTab('today'); });
+document.getElementById('btn-sync-out').addEventListener('click', exportData);
+document.getElementById('btn-sync-in').addEventListener('click', importData);
+document.getElementById('btn-reset-all').addEventListener('click', resetAll);
+
+// ===========================
+// 初期化
+// ===========================
+document.getElementById('f-deadline').value = fmtDateInput(todayDate());
+render();
+</script>
+</body>
+</html>
