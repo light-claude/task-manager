@@ -624,9 +624,9 @@ function renderToday() {
   const dueToday = state.tasks.filter(t => !t.done && !t.soft && daysUntil(t.deadline) === 0);
   const startToday = state.tasks.filter(t => !t.done && !t.soft && shouldStartToday(t) && daysUntil(t.deadline) > 0);
 
-  if (overdue.length) alerts.push(`<div class="alert"><div class="alert-title">⚠️ 期限超過：${overdue.length}件</div>${overdue.map(t=>escapeHtml(t.name)).join('、')}</div>`);
-  if (dueToday.length) alerts.push(`<div class="alert warn"><div class="alert-title">📅 今日が締切：${dueToday.length}件</div>${dueToday.map(t=>escapeHtml(t.name)).join('、')}</div>`);
-  if (startToday.length) alerts.push(`<div class="alert info"><div class="alert-title">▶️ 今日から着手すべき：${startToday.length}件</div>所要時間から逆算</div>`);
+  if (overdue.length) alerts.push(`<div class="alert" onclick="switchTab('today')" style="cursor:pointer;"><div class="alert-title">⚠️ 期限超過：${overdue.length}件　<span style="font-size:11px;opacity:0.8;">→ 今日タブへ</span></div>${overdue.map(t=>escapeHtml(t.name)).join('、')}</div>`);
+  if (dueToday.length) alerts.push(`<div class="alert warn" onclick="switchTab('today')" style="cursor:pointer;"><div class="alert-title">📅 今日が締切：${dueToday.length}件　<span style="font-size:11px;opacity:0.8;">→ 今日タブへ</span></div>${dueToday.map(t=>escapeHtml(t.name)).join('、')}</div>`);
+  if (startToday.length) alerts.push(`<div class="alert info" onclick="switchTab('today')" style="cursor:pointer;"><div class="alert-title">▶️ 今日から着手すべき：${startToday.length}件　<span style="font-size:11px;opacity:0.8;">→ 今日タブへ</span></div>所要時間から逆算</div>`);
 
   document.getElementById('alerts').innerHTML = alerts.join('');
 
@@ -1043,6 +1043,10 @@ function switchTab(name) {
 document.querySelectorAll('.tab').forEach(b => {
   b.addEventListener('click', () => {
     if (b.dataset.tab !== 'add' && editingId != null) clearForm();
+    // 追加タブを開くたびに締切日を今日にリセット（編集モード以外）
+    if (b.dataset.tab === 'add' && editingId == null) {
+      document.getElementById('f-deadline').value = fmtDateInput(todayDate());
+    }
     switchTab(b.dataset.tab);
   });
 });
