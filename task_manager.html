@@ -420,6 +420,9 @@ function saveState() {
 function todayDate() {
   const d = new Date(); d.setHours(0,0,0,0); return d;
 }
+function tomorrowDate() {
+  const d = todayDate(); d.setDate(d.getDate()+1); return d;
+}
 function daysUntil(dateStr) {
   if (!dateStr) return 999;
   const d = new Date(dateStr); d.setHours(0,0,0,0);
@@ -883,7 +886,7 @@ function applyTemplate(name) {
 
 function clearForm() {
   document.getElementById('f-name').value = '';
-  document.getElementById('f-deadline').value = fmtDateInput(todayDate());
+  document.getElementById('f-deadline').value = fmtDateInput(tomorrowDate());
   document.getElementById('f-soft').value = '0';
   document.getElementById('f-duration').value = '1';
   document.getElementById('f-importance').value = '2';
@@ -1045,7 +1048,7 @@ document.querySelectorAll('.tab').forEach(b => {
     if (b.dataset.tab !== 'add' && editingId != null) clearForm();
     // 追加タブを開くたびに締切日を今日にリセット（編集モード以外）
     if (b.dataset.tab === 'add' && editingId == null) {
-      document.getElementById('f-deadline').value = fmtDateInput(todayDate());
+      document.getElementById('f-deadline').value = fmtDateInput(tomorrowDate());
     }
     switchTab(b.dataset.tab);
   });
@@ -1065,7 +1068,7 @@ document.getElementById('btn-reset-all').addEventListener('click', resetAll);
 // ===========================
 // 初期化
 // ===========================
-document.getElementById('f-deadline').value = fmtDateInput(todayDate());
+document.getElementById('f-deadline').value = fmtDateInput(tomorrowDate());
 render();
 </script>
 </body>
