@@ -252,6 +252,7 @@ body { padding-bottom: 80px; min-height: 100vh; }
           <option value="biweekly">隔週</option>
           <option value="monthly">毎月（同日）</option>
           <option value="monthend">毎月末</option>
+          <option value="yearly">毎年</option>
         </select>
         <div class="field-help">完了時に次回分を自動生成します</div>
       </div>
@@ -376,6 +377,7 @@ body { padding-bottom: 80px; min-height: 100vh; }
           <option value="biweekly">隔週</option>
           <option value="monthly">毎月（同日）</option>
           <option value="monthend">毎月末</option>
+          <option value="yearly">毎年</option>
         </select>
       </div>
       <div class="field">
@@ -499,7 +501,7 @@ function durationLabel(v) {
   return v < 1 ? `${v*60}分` : v >= 8 ? `${v/8}日` : `${v}時間`;
 }
 function repeatLabel(r) {
-  return {weekly:'毎週',biweekly:'隔週',monthly:'毎月',monthend:'毎月末'}[r] || '';
+  return {weekly:'毎週',biweekly:'隔週',monthly:'毎月',monthend:'毎月末',yearly:'毎年'}[r] || '';
 }
 
 // ===========================
@@ -746,6 +748,7 @@ function toggleDone(id) {
     if (t.repeat === 'biweekly') nd = addDays(t.deadline, 14);
     if (t.repeat === 'monthly')  nd = addMonths(t.deadline, 1);
     if (t.repeat === 'monthend') nd = monthEnd(addMonths(t.deadline, 1));
+    if (t.repeat === 'yearly')   nd = addMonths(t.deadline, 12);
     state.tasks.push({
       id: state.nextId++, name: t.name, deadline: nd, soft: t.soft,
       duration: t.duration, importance: t.importance, repeat: t.repeat,
